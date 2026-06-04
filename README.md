@@ -21,7 +21,7 @@ All guards use **ask** mode — you can approve or have Claude retry the cheap w
 
 ```bash
 claude plugin marketplace add SeamusMullan/proompt-police
-claude plugin enable proompt-police@SeamusMullan
+claude plugin install proompt-police@proompt-police
 ```
 
 ### Local / dev
