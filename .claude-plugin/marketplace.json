@@ -1,6 +1,17 @@
 {
-  "source": {
-    "source": "github",
-    "repo": "SeamusMullan/proompt-police"
-  }
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "proompt-police",
+  "description": "Real-time cost guardrails for Claude Code. Intercepts expensive habits, shows live spend.",
+  "owner": {
+    "name": "Seamus Mullan",
+    "url": "https://github.com/SeamusMullan"
+  },
+  "plugins": [
+    {
+      "name": "proompt-police",
+      "description": "Intercepts raw log dumps, subagent bloat, Write-over-Edit, and Opus-on-routine. Live statusline shows cost/tokens/cache.",
+      "source": "./",
+      "category": "productivity"
+    }
+  ]
 }
