@@ -1,0 +1,11 @@
+{
+  "name": "proompt-police",
+  "version": "0.1.0",
+  "type": "commonjs",
+  "bin": {
+    "thrift-dashboard": "./bin/thrift-dashboard.js"
+  },
+  "dependencies": {
+    "blessed": "^0.1.81"
+  }
+}

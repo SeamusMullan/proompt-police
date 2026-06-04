@@ -1,0 +1,6 @@
+{
+  "name": "proompt-police",
+  "version": "0.1.0",
+  "description": "Real-time cost guardrails for Claude Code. Intercepts expensive habits, shows live spend.",
+  "author": { "name": "Seamus Mullan" }
+}

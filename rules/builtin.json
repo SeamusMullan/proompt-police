@@ -1,0 +1,74 @@
+[
+  {
+    "id": "raw-log-dump",
+    "enabled": true,
+    "tools": ["Bash"],
+    "when": {
+      "field": "command",
+      "matchesAny": [
+        "gh run view .*--log",
+        "\\bcat\\b .*\\.log",
+        "\\bjournalctl\\b",
+        "\\bdocker logs\\b",
+        "\\bkubectl logs\\b",
+        "\\bnpm run .*log",
+        "\\byarn .*log"
+      ],
+      "andNot": [
+        "\\|\\s*(grep|tail|head|awk|sed|rg|jq)",
+        "-n\\s+\\d",
+        "--tail",
+        "--since",
+        "--until"
+      ]
+    },
+    "ask": "Raw log pull with no filter → tens of KB into context. Re-run piped, e.g. `… | grep -C 50 -iE 'error|fail|fatal'` or `| tail -n 200`."
+  },
+  {
+    "id": "subagent-bloat",
+    "enabled": true,
+    "tools": ["Agent", "Task"],
+    "when": {
+      "field": "prompt",
+      "matchesAny": [
+        "\\bthorough(ly)?\\b",
+        "\\beverything\\b",
+        "\\bcomprehensive(ly)?\\b",
+        "\\bdetailed report\\b",
+        "\\bfull summary\\b",
+        "\\bexhaustive\\b",
+        "\\bin depth\\b",
+        "\\bin-depth\\b",
+        "\\bdon't miss anything\\b",
+        "\\bcheck everything\\b",
+        "\\ball files\\b",
+        "\\bevery file\\b"
+      ]
+    },
+    "ask": "Agent/Task prompted for exhaustive prose → big hidden output-token bill. Rewrite the prompt to request: bulleted file paths + components only, no narrative, cap ~150 lines."
+  },
+  {
+    "id": "write-over-edit",
+    "enabled": true,
+    "tools": ["Write"],
+    "when": {
+      "field": "content",
+      "minLength": 4000,
+      "fileExists": true
+    },
+    "ask": "Large Write over an existing file regenerates the whole thing in output tokens. Prefer targeted Edit(s) for the changed regions. Use Write only for new files or full rewrites."
+  },
+  {
+    "id": "opus-on-routine",
+    "enabled": true,
+    "tools": ["Bash"],
+    "advisoryOnly": true,
+    "when": {
+      "field": "command",
+      "matchesAny": [
+        "^\\s*(grep|find|ls|cat|rg|wc|head|tail|echo|pwd|which|type|file|stat|diff|sort|uniq|cut|tr|date|env|printenv)\\b"
+      ]
+    },
+    "note": "Trivial command on current model. Consider /model sonnet for routine work; escalate when stuck."
+  }
+]
