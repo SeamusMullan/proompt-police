@@ -1,49 +1,7 @@
 'use strict';
 const fs = require('fs');
 
-function matches(when, toolInput, cwd) {
-  if (!when) return false;
-
-  const fieldVal = toolInput[when.field];
-  if (typeof fieldVal !== 'string') {
-    // fileExists predicate applies to file_path field
-    if (when.fileExists !== undefined) {
-      return checkFileExists(when, toolInput, cwd);
-    }
-    return false;
-  }
-
-  // matchesAny: at least one regex must match
-  if (when.matchesAny) {
-    const hit = when.matchesAny.some(pat => new RegExp(pat, 'i').test(fieldVal));
-    if (!hit) return false;
-  }
-
-  // matchesAll: every regex must match
-  if (when.matchesAll) {
-    const allHit = when.matchesAll.every(pat => new RegExp(pat, 'i').test(fieldVal));
-    if (!allHit) return false;
-  }
-
-  // andNot: if any negative pattern matches, suppress the rule
-  if (when.andNot) {
-    const negHit = when.andNot.some(pat => new RegExp(pat, 'i').test(fieldVal));
-    if (negHit) return false;
-  }
-
-  // minLength on the field value
-  if (when.minLength !== undefined && fieldVal.length < when.minLength) return false;
-  if (when.maxLength !== undefined && fieldVal.length > when.maxLength) return false;
-
-  // fileExists: only relevant when minLength/maxLength checks also pass
-  if (when.fileExists !== undefined) {
-    return checkFileExists(when, toolInput, cwd);
-  }
-
-  return true;
-}
-
-function checkFileExists(when, toolInput, cwd) {
+function checkFileExists(when, toolInput) {
   const filePath = toolInput.file_path;
   if (!filePath || typeof filePath !== 'string') return false;
   try {
@@ -54,10 +12,57 @@ function checkFileExists(when, toolInput, cwd) {
   }
 }
 
-function matchesRule(rule, toolName, toolInput, cwd) {
+// fileSizeGt: true if file_path exists and byte size exceeds threshold
+function checkFileSizeGt(when, toolInput) {
+  const filePath = toolInput.file_path;
+  if (!filePath || typeof filePath !== 'string') return false;
+  try {
+    return fs.statSync(filePath).size > when.fileSizeGt;
+  } catch (_) {
+    return false;
+  }
+}
+
+// fieldAbsent: true if named field is undefined/null in toolInput
+function checkFieldAbsent(when, toolInput) {
+  const val = toolInput[when.fieldAbsent];
+  return val === undefined || val === null;
+}
+
+function matches(when, toolInput) {
+  if (!when) return false;
+
+  // String-field predicates (matchesAny, matchesAll, andNot, minLength, maxLength)
+  // Only evaluated when `when.field` is set.
+  if (when.field !== undefined) {
+    const fieldVal = toolInput[when.field];
+    if (typeof fieldVal !== 'string') return false;
+
+    if (when.matchesAny) {
+      if (!when.matchesAny.some(pat => new RegExp(pat, 'i').test(fieldVal))) return false;
+    }
+    if (when.matchesAll) {
+      if (!when.matchesAll.every(pat => new RegExp(pat, 'i').test(fieldVal))) return false;
+    }
+    if (when.andNot) {
+      if (when.andNot.some(pat => new RegExp(pat, 'i').test(fieldVal))) return false;
+    }
+    if (when.minLength !== undefined && fieldVal.length < when.minLength) return false;
+    if (when.maxLength !== undefined && fieldVal.length > when.maxLength) return false;
+  }
+
+  // Non-string predicates — evaluated independently of `when.field`
+  if (when.fileExists !== undefined && !checkFileExists(when, toolInput)) return false;
+  if (when.fileSizeGt !== undefined && !checkFileSizeGt(when, toolInput)) return false;
+  if (when.fieldAbsent !== undefined && !checkFieldAbsent(when, toolInput)) return false;
+
+  return true;
+}
+
+function matchesRule(rule, toolName, toolInput) {
   if (!rule.enabled) return false;
   if (!rule.tools.includes(toolName)) return false;
-  return matches(rule.when, toolInput, cwd);
+  return matches(rule.when, toolInput);
 }
 
 module.exports = { matchesRule };

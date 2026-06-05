@@ -48,6 +48,59 @@
     "ask": "Agent/Task prompted for exhaustive prose → big hidden output-token bill. Rewrite the prompt to request: bulleted file paths + components only, no narrative, cap ~150 lines."
   },
   {
+    "id": "subagent-cache-thrash",
+    "enabled": true,
+    "tools": ["Agent"],
+    "when": {
+      "field": "prompt",
+      "matchesAny": [
+        "\\blight read\\b",
+        "\\blight reading\\b",
+        "\\bquick (look|scan|check|read|overview|survey|glance)\\b",
+        "\\bjust (read|look|check|scan|browse|explore)\\b",
+        "\\bread (over|through) the\\b",
+        "\\bskim\\b",
+        "\\bglance\\b",
+        "\\bexplore (the |this |that )?repo\\b",
+        "\\bexplore (the |this |that )?(code|codebase|directory|folder|files)\\b",
+        "\\bmap (out |the )?(repo|codebase|directory|structure|files)\\b",
+        "\\bscan (the |this |for )?(repo|codebase|directory|files|code)\\b",
+        "\\bget (an? )?(overview|lay of the land|sense of)\\b",
+        "\\bfamiliariz\\b"
+      ]
+    },
+    "ask": "Spawning a subagent for light exploration = fresh session = one expensive cache WRITE that gets 0 subsequent reads. Cache writes cost ~3× reads; a write amortizes only after ~25 re-reads in the same session. Fix: use Bash/Read/grep in-thread instead. Long-lived single sessions hit cache hundreds of times for the same prefix cost."
+  },
+  {
+    "id": "large-read-no-offset",
+    "enabled": true,
+    "tools": ["Read"],
+    "when": {
+      "fileSizeGt": 20000,
+      "fieldAbsent": "offset"
+    },
+    "ask": "Reading a large file (>20 KB) without an offset dumps the whole thing into context → busts the cache prefix, forcing an expensive full rewrite. Use `offset`+`limit` to read only the relevant block, or use Bash `grep -n` to locate the target lines first."
+  },
+  {
+    "id": "agent-verbose-return",
+    "enabled": true,
+    "tools": ["Agent"],
+    "when": {
+      "field": "prompt",
+      "matchesAny": [
+        "\\b(report|summarize|summarise|describe|document|analyze|analyse|audit|review|investigate|inspect|survey)\\b",
+        "\\bfind (all|every|any)\\b",
+        "\\blist (all|every)\\b",
+        "\\bwhat (is|are|does|do)\\b.*\\b(in|across|throughout) (the |this |that )?(repo|codebase|project|code)\\b"
+      ],
+      "andNot": [
+        "\\b(write|save|output|store|dump|emit|append)\\b.{0,60}\\b(file|disk|path|\\.md|\\.txt|\\.json)\\b",
+        "\\b(file|disk|path|\\.md|\\.txt|\\.json)\\b.{0,60}\\b(write|save|output|store|dump|emit|append)\\b"
+      ]
+    },
+    "ask": "Agent returning a long report directly into main thread → large tool result injects into context mid-session, busts cache prefix. Instruct the agent to write detailed findings to a temp file (e.g. /tmp/findings.md) and return only a 2-3 sentence summary. Cache write cost exceeding read benefit is caused by exactly this pattern."
+  },
+  {
     "id": "write-over-edit",
     "enabled": true,
     "tools": ["Write"],
