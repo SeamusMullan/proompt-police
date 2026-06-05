@@ -127,7 +127,7 @@ function analyze(transcript, events) {
 }
 
 function render(transcriptPath) {
-  const sessionId = process.env.CLAUDE_SESSION_ID || latestSessionId();
+  const sessionId = process.env.CLAUDE_SESSION_ID || currentSession?.session_id || latestSessionId();
   const transcript = loadTranscript(transcriptPath);
   const events = loadEventLog(sessionId);
   const a = analyze(transcript, events);
@@ -192,9 +192,20 @@ function render(transcriptPath) {
   console.log(`${DIM}  Refreshes every 2s. Press q or Ctrl+C to exit.${RESET}`);
 }
 
-// find transcript path
+// find transcript path: env → arg → persisted current-session.json
+function loadCurrentSession() {
+  try {
+    const p = path.join(DATA_DIR, 'current-session.json');
+    const st = fs.lstatSync(p);
+    if (st.isSymbolicLink() || !st.isFile() || st.size > 4096) return null;
+    return JSON.parse(fs.readFileSync(p, 'utf8'));
+  } catch (_) { return null; }
+}
+
+const currentSession = loadCurrentSession();
 const transcriptPath = process.env.CLAUDE_TRANSCRIPT_PATH
   || process.argv[2]
+  || currentSession?.transcript_path
   || null;
 
 if (!transcriptPath) {
